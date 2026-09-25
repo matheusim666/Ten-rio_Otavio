@@ -1,3 +1,69 @@
+const { useState, useEffect } = React;
+
+const KEY = "tenorio-otavio-react-v1";
+const MAX = 100;
+
+const PALETTE = {
+  0: "transparent",
+  1: "#1f3a24",
+  2: "#4caf5e",
+  3: "#357a42",
+  4: "#eafbe0",
+  5: "#1f3a24",
+  6: "#e07a5a",
+  7: "#2f8f4a",
+  8: "#f2c14e"
+};
+
+const FRAME_AWAKE = [
+  "...8..0000..8...",
+  "..118..00..811..",
+  "..1177777711....",
+  ".71177777711117.",
+  "711222222221117.",
+  "1122255225221117",
+  "1122222222211117",
+  "1122266622211117",
+  "1122222222211107",
+  "1123222222311...",
+  ".1234444443221..",
+  ".1123444443221..",
+  "..1123333332211.",
+  "...1122222211...",
+  "....111..111....",
+  "...1..7....7...."
+];
+
+const FRAME_SLEEP = [
+  "................",
+  "...8......8.....",
+  "..118......811..",
+  "..1177777711....",
+  ".71177777711117.",
+  "711222222221117.",
+  "1122211122211117",
+  "1122222222211117",
+  "1122222222211107",
+  "1123222222311...",
+  ".1234444443221..",
+  ".1123444443221..",
+  "..1123333332211.",
+  "...1122222211...",
+  "....111..111....",
+  "................"
+];
+
+function StatBar({ label, value }) {
+  return (
+    <div className="stat">
+      <div>{label}</div>
+      <div className="bar-bg">
+        <div className="bar-fill" style={{ width: `${value}%` }}></div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [pet, setPet] = useState(() => {
     const saved = localStorage.getItem(KEY);
@@ -22,9 +88,10 @@ function App() {
 
   const [msg, setMsg] = useState("");
   const [bounce, setBounce] = useState(false);
-  const [inShop, setInShop] = useState(false); // Novo estado para abrir/fechar a loja
+  const [view, setView] = useState("stage");
+  const [coinPos, setCoinPos] = useState({ top: '40%', left: '40%' });
+  const [scoreGame, setScoreGame] = useState(0);
 
-  // Catálogo da Loja
   const shopItems = [
     { id: 1, name: "Pizza 🍕", cost: 10, fome: +35, alegria: +10 },
     { id: 2, name: "Maçã 🍎", cost: 5, fome: +15, saude: +5 },
@@ -104,22 +171,6 @@ function App() {
     triggerMsg("Nham nham! +2 🪙");
   };
 
-  const play = () => {
-    if (pet.sleeping) return triggerMsg("zzz... Dormindo!");
-    const acoes = { ...pet.historicoAcoes, brincar: pet.historicoAcoes.brincar + 1 };
-    const xpInfo = updateXP(20);
-    setPet(prev => ({
-      ...prev,
-      alegria: Math.min(MAX, prev.alegria + 25),
-      fome: Math.max(0, prev.fome - 10),
-      moedas: prev.moedas + 5,
-      historicoAcoes: acoes,
-      personalidade: calcularPersonalidade(acoes),
-      ...xpInfo
-    }));
-    triggerMsg("Muito divertido! +5 🪙");
-  };
-
   const bath = () => {
     if (pet.sleeping) return triggerMsg("zzz... Dormindo!");
     setPet(prev => ({ ...prev, higiene: Math.min(MAX, prev.higiene + 30) }));
@@ -142,6 +193,41 @@ function App() {
       sick: item.sick !== undefined ? item.sick : prev.sick
     }));
     triggerMsg(`Comprou ${item.name}!`);
+  };
+
+  const startGame = () => {
+    if (pet.sleeping) return triggerMsg("zzz... Dormindo!");
+    setScoreGame(0);
+    moveCoin();
+    setView("game");
+  };
+
+  const moveCoin = () => {
+    const top = Math.floor(Math.random() * 70 + 10) + "%";
+    const left = Math.floor(Math.random() * 70 + 10) + "%";
+    setCoinPos({ top, left });
+  };
+
+  const catchCoin = () => {
+    const newScore = scoreGame + 1;
+    setScoreGame(newScore);
+    if (newScore >= 5) {
+      const acoes = { ...pet.historicoAcoes, brincar: pet.historicoAcoes.brincar + 1 };
+      const xpInfo = updateXP(25);
+      setPet(prev => ({
+        ...prev,
+        moedas: prev.moedas + 10,
+        alegria: Math.min(MAX, prev.alegria + 30),
+        fome: Math.max(0, prev.fome - 10),
+        historicoAcoes: acoes,
+        personalidade: calcularPersonalidade(acoes),
+        ...xpInfo
+      }));
+      setView("stage");
+      triggerMsg("Ganhou o Jogo! +10 🪙");
+    } else {
+      moveCoin();
+    }
   };
 
   const renderPetSvg = () => {
@@ -174,22 +260,40 @@ function App() {
         <div className="stage">
           {msg && <div style={{ position: 'absolute', top: 0, fontWeight: 'bold', zIndex: 10 }}>{msg}</div>}
           
-          {inShop ? (
+          {view === "shop" && (
             <div style={{ fontSize: '11px', width: '100%', textAlign: 'center' }}>
               <strong>Lojinha</strong>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginTop: '6px' }}>
                 {shopItems.map(item => (
-                  <button 
-                    key={item.id} 
-                    onClick={() => buyItem(item)}
-                    style={{ fontSize: '10px', padding: '4px', cursor: 'pointer' }}
-                  >
+                  <button key={item.id} onClick={() => buyItem(item)} style={{ fontSize: '10px', padding: '4px', cursor: 'pointer' }}>
                     {item.name}<br/>🪙 {item.cost}
                   </button>
                 ))}
               </div>
             </div>
-          ) : (
+          )}
+
+          {view === "game" && (
+            <div style={{ position: 'relative', width: '100%', height: '100%', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px' }}>Pega nas moedas! ({scoreGame}/5)</div>
+              <button 
+                onClick={catchCoin}
+                style={{
+                  position: 'absolute',
+                  top: coinPos.top,
+                  left: coinPos.left,
+                  fontSize: '20px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                🪙
+              </button>
+            </div>
+          )}
+
+          {view === "stage" && (
             <>
               <svg className={`pixel-pet ${bounce ? 'bounce' : ''}`} viewBox="0 0 16 16" shapeRendering="crispEdges">
                 {renderPetSvg()}
@@ -204,14 +308,15 @@ function App() {
 
       <div className="buttons">
         <button className="btn" onClick={feed}>🍖<span className="btn-label">Comer</span></button>
-        <button className="btn" onClick={play}>🎮<span className="btn-label">Brincar</span></button>
+        <button className="btn" onClick={startGame}>🎮<span className="btn-label">Brincar</span></button>
         <button className="btn" onClick={bath}>🛁<span className="btn-label">Banho</span></button>
         <button className="btn" onClick={sleep}>🌙<span className="btn-label">Dormir</span></button>
-        <button className="btn" onClick={() => setInShop(!inShop)}>
-          🏪<span className="btn-label">{inShop ? "Voltar" : "Loja"}</span>
+        <button className="btn" onClick={() => setView(view === "shop" ? "stage" : "shop")}>
+          🏪<span className="btn-label">{view === "shop" ? "Voltar" : "Loja"}</span>
         </button>
       </div>
     </div>
   );
-                                                        }
-                      
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
