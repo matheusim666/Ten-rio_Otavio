@@ -1,0 +1,80 @@
+:root {
+  --bg: #7fd0a0;
+  --bg-dark: #4a9b6e;
+  --screen: #d8f0e0;
+  --line: #1f3a24;
+  --accent: #e07a5a;
+  --accent2: #f2c14e;
+  --text: #1f3a24;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg-dark);
+  font-family: 'Courier New', monospace;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.device {
+  background: var(--bg);
+  border-radius: 28px;
+  padding: 22px 18px 30px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 0 0 3px var(--line);
+  color: var(--text);
+}
+
+.title {
+  text-align: center;
+  font-weight: bold;
+  letter-spacing: 2px;
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.screen {
+  background: var(--screen);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 3px var(--line);
+  padding: 12px;
+  position: relative;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.stat { text-align: center; font-size: 12px; }
+.bar-bg { background: rgba(43,58,23,.25); height: 10px; border-radius: 5px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--line); transition: width .4s; }
+
+.stage {
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.pixel-pet { width: 96px; height: 96px; image-rendering: pixelated; }
+.pixel-pet.bounce { animation: bounce .5s ease; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.buttons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 16px; }
+.btn { background: var(--accent2); border: none; border-radius: 10px; padding: 10px 2px; font-size: 20px; cursor: pointer; box-shadow: 0 3px 0 #b8912e, inset 0 0 0 2px var(--line); }
+.btn:active { transform: translateY(3px); box-shadow: none; }
+.btn-label { display: block; font-size: 10px; margin-top: 2px; font-family: monospace; }
