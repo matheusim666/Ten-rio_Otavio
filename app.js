@@ -1,71 +1,3 @@
-const { useState, useEffect } = React;
-
-const KEY = "tenorio-otavio-react-v1";
-const MAX = 100;
-
-// Paleta de cores do Sprite em Pixel Art
-const PALETTE = {
-  0: "transparent",
-  1: "#1f3a24",
-  2: "#4caf5e",
-  3: "#357a42",
-  4: "#eafbe0",
-  5: "#1f3a24",
-  6: "#e07a5a",
-  7: "#2f8f4a",
-  8: "#f2c14e"
-};
-
-const FRAME_AWAKE = [
-  "...8..0000..8...",
-  "..118..00..811..",
-  "..1177777711....",
-  ".71177777711117.",
-  "711222222221117.",
-  "1122255225221117",
-  "1122222222211117",
-  "1122266622211117",
-  "1122222222211107",
-  "1123222222311...",
-  ".1234444443221..",
-  ".1123444443221..",
-  "..1123333332211.",
-  "...1122222211...",
-  "....111..111....",
-  "...1..7....7...."
-];
-
-const FRAME_SLEEP = [
-  "................",
-  "...8......8.....",
-  "..118......811..",
-  "..1177777711....",
-  ".71177777711117.",
-  "711222222221117.",
-  "1122211122211117",
-  "1122222222211117",
-  "1122222222211107",
-  "1123222222311...",
-  ".1234444443221..",
-  ".1123444443221..",
-  "..1123333332211.",
-  "...1122222211...",
-  "....111..111....",
-  "................"
-];
-
-// Componente para desenhar as barras de status
-function StatBar({ label, value }) {
-  return (
-    <div className="stat">
-      <div>{label}</div>
-      <div className="bar-bg">
-        <div className="bar-fill" style={{ width: `${value}%` }}></div>
-      </div>
-    </div>
-  );
-}
-
 function App() {
   const [pet, setPet] = useState(() => {
     const saved = localStorage.getItem(KEY);
@@ -77,7 +9,7 @@ function App() {
       alegria: 80,
       higiene: 80,
       saude: 100,
-      moedas: 10,
+      moedas: 20,
       xp: 0,
       nivel: 1,
       personalidade: "Equilibrado",
@@ -90,13 +22,20 @@ function App() {
 
   const [msg, setMsg] = useState("");
   const [bounce, setBounce] = useState(false);
+  const [inShop, setInShop] = useState(false); // Novo estado para abrir/fechar a loja
 
-  // Salvar automaticamente no localStorage
+  // Catálogo da Loja
+  const shopItems = [
+    { id: 1, name: "Pizza 🍕", cost: 10, fome: +35, alegria: +10 },
+    { id: 2, name: "Maçã 🍎", cost: 5, fome: +15, saude: +5 },
+    { id: 3, name: "Poção 🧪", cost: 15, saude: +40, sick: false },
+    { id: 4, name: "Brinquedo 🧸", cost: 12, alegria: +30 }
+  ];
+
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify(pet));
   }, [pet]);
 
-  // Loop de Decaimento do tempo
   useEffect(() => {
     const interval = setInterval(() => {
       setPet(prev => {
@@ -120,7 +59,7 @@ function App() {
           lastUpdate: Date.now()
         };
       });
-    }, 10000); // atualiza a cada 10 segundos
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
@@ -136,14 +75,13 @@ function App() {
     let novoXP = pet.xp + qtd;
     let novoNivel = pet.nivel;
     if (novoXP >= 100) {
-      novoXP = novoXP - 100;
+      novoXP -= 100;
       novoNivel += 1;
       triggerMsg("Subiu de Nível! 🎉");
     }
     return { xp: novoXP, nivel: novoNivel };
   };
 
-  // Avalia personalidade inteligente com base nas ações
   const calcularPersonalidade = (acoes) => {
     if (acoes.comer > acoes.brincar + 5) return "Gulosão 🍔";
     if (acoes.brincar > acoes.comer + 5) return "Atleta ⚽";
@@ -156,7 +94,7 @@ function App() {
     const xpInfo = updateXP(15);
     setPet(prev => ({
       ...prev,
-      fome: Math.min(MAX, prev.fome + 25),
+      fome: Math.min(MAX, prev.fome + 20),
       higiene: Math.max(0, prev.higiene - 5),
       moedas: prev.moedas + 2,
       historicoAcoes: acoes,
@@ -193,6 +131,19 @@ function App() {
     triggerMsg(pet.sleeping ? "Bom dia! ☀️" : "Boa noite... 🌙");
   };
 
+  const buyItem = (item) => {
+    if (pet.moedas < item.cost) return triggerMsg("Moedas insuficientes!");
+    setPet(prev => ({
+      ...prev,
+      moedas: prev.moedas - item.cost,
+      fome: Math.min(MAX, prev.fome + (item.fome || 0)),
+      alegria: Math.min(MAX, prev.alegria + (item.alegria || 0)),
+      saude: Math.min(MAX, prev.saude + (item.saude || 0)),
+      sick: item.sick !== undefined ? item.sick : prev.sick
+    }));
+    triggerMsg(`Comprou ${item.name}!`);
+  };
+
   const renderPetSvg = () => {
     const frame = pet.sleeping ? FRAME_SLEEP : FRAME_AWAKE;
     return frame.map((row, y) =>
@@ -221,15 +172,33 @@ function App() {
         </div>
 
         <div className="stage">
-          {msg && <div style={{ position: 'absolute', top: 0, fontWeight: 'bold' }}>{msg}</div>}
+          {msg && <div style={{ position: 'absolute', top: 0, fontWeight: 'bold', zIndex: 10 }}>{msg}</div>}
           
-          <svg className={`pixel-pet ${bounce ? 'bounce' : ''}`} viewBox="0 0 16 16" shapeRendering="crispEdges">
-            {renderPetSvg()}
-          </svg>
-
-          <div style={{ fontSize: '10px', marginTop: '6px', opacity: 0.8 }}>
-            Perfil: {pet.personalidade}
-          </div>
+          {inShop ? (
+            <div style={{ fontSize: '11px', width: '100%', textAlign: 'center' }}>
+              <strong>Lojinha</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginTop: '6px' }}>
+                {shopItems.map(item => (
+                  <button 
+                    key={item.id} 
+                    onClick={() => buyItem(item)}
+                    style={{ fontSize: '10px', padding: '4px', cursor: 'pointer' }}
+                  >
+                    {item.name}<br/>🪙 {item.cost}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <svg className={`pixel-pet ${bounce ? 'bounce' : ''}`} viewBox="0 0 16 16" shapeRendering="crispEdges">
+                {renderPetSvg()}
+              </svg>
+              <div style={{ fontSize: '10px', marginTop: '6px', opacity: 0.8 }}>
+                Perfil: {pet.personalidade}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -238,10 +207,11 @@ function App() {
         <button className="btn" onClick={play}>🎮<span className="btn-label">Brincar</span></button>
         <button className="btn" onClick={bath}>🛁<span className="btn-label">Banho</span></button>
         <button className="btn" onClick={sleep}>🌙<span className="btn-label">Dormir</span></button>
-        <button className="btn" onClick={() => triggerMsg("Em breve!")}>🏪<span className="btn-label">Loja</span></button>
+        <button className="btn" onClick={() => setInShop(!inShop)}>
+          🏪<span className="btn-label">{inShop ? "Voltar" : "Loja"}</span>
+        </button>
       </div>
     </div>
   );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+                                                        }
+                      
